@@ -18,42 +18,39 @@ bounds not just this machine's PRECISION but its DEPTH.
 
 Compilation is a boundary-value problem, and it is solved like one.
 
-All six bodies form one coupled system: gravity has no shielding, so every
+All the bodies form one coupled system: gravity has no shielding, so every
 control tugs B and every other control at range (tail deflection ~ 1/b, a
 power law). Calibrating gates one at a time is Gauss-Seidel without damping
 on a stiff coupled system — it limit-cycles (measured: gate offsets flap
 between 0.86 and 1.19 forever, so the next gate aims at a moving target and
 misses). The fix is a global solve with step control:
 
-  unknowns  x_k = how far to slide control C_k along the normal to its lane
-                  (the impact-parameter knob), one per gate
-  residuals r_k = achieved lane heading after gate k, minus the design port
-                  heading, in the ALL-ONES configuration, from ONE sim
-  solver    Levenberg-Marquardt (scipy least_squares) — its damping is
-            exactly what the hand-rolled sweeps lacked
+  unknowns  (a_k, p_k) per gate — TWO knobs, both needed: a slide ALONG the
+            control's flight line (fixes arrival timing; a control launched
+            ~50 units upwind is itself deflected in flight and arrives
+            1.8-2.6 time units early, grazing B at ~1.8 instead of ~0.5)
+            and a slide along the lane NORMAL (the impact-parameter knob,
+            which sets the bend)
+  residuals per gate, the LOCAL pair: (bend across THIS encounter minus
+            -BEND, arrival-time error), measured in the ALL-ONES
+            configuration from ONE sim. The residual must be local: pinning
+            cumulative port headings instead lets adjacent gates split a
+            port between them (each bending BEND/2 — an exact degenerate
+            minimum we hit at 27.0 deg) — the local target forbids it.
+  solver    trust-region least squares (scipy least_squares) — its damping
+            is exactly what the hand-rolled sweeps lacked
 
 The residual Jacobian is empirically near-lower-triangular (an upstream
 slide swings downstream ports ~46 deg/unit, amplified ~x12 per gate;
 downstream barely touches upstream) and smooth to 5 significant figures
-under finite differencing despite the chaos — LM converges in a handful of
-iterations. A cheap greedy forward pass supplies the initial guess and the
-per-gate lane frames; the global solve does the coupling.
-
-Each control gets TWO knobs, and both are needed. A control launched ~60
-units upwind of its gate is itself deflected in flight by the rest of the
-machine (no shielding again): measured, the deep controls arrive 1.8-2.6
-time units early and graze B at distance ~1.8 instead of the intended ~0.5.
-So per control the unknowns are (a_k, p_k): a slide ALONG its flight line
-(fixes arrival timing) and a slide ALONG the lane normal (sets the impact
-parameter, hence the bend). The matching residuals are (lane-heading error,
-arrival-time error), a near-diagonal 2x2 per gate — along-track dominates
-timing, cross-track dominates bend — so the full 2Nx2N system is well
-conditioned and LM converges from the greedy seed in one shot.
+under finite differencing despite the chaos, and the (timing, bend) pair is
+near-diagonal per gate — so the 2Nx2N system is well conditioned and the
+solve converges from a cheap greedy forward seed in one shot.
 
 Design point: BEND=54 and unit-speed wires put every encounter at impact
 parameter ~1 (tame dtheta/db); DT=12 fans stopped signals ~10 units clear
 of downstream control corridors (crosstalk ~ 1/distance, no insulation), so
-the 32 mixed-input subsets stay correct on geometric margin — calibration
+all 16 mixed-input subsets stay correct on geometric margin — calibration
 only ever pins the all-ones lane.
 """
 
@@ -256,14 +253,22 @@ def _measure_ports(gates, t_end, n_samples):
     return ports, impact
 
 
+def _cache_key(n_gates):
+    """Every constant that shapes the compiled machine belongs in the cache
+    key — a spec compiled under old values must not be silently reused."""
+    return {"n_gates": n_gates, "bend": BEND, "dt": DT, "c_speed": C_SPEED,
+            "tail": TAIL, "lane_dt": LANE_DT, "w_time": W_TIME,
+            "solve_rtol": SOLVE_RTOL}
+
+
 def compile_pipeline(n_gates=4, use_cache=True, n_samples=250, verbose=False):
     """Seed greedily, then solve all controls together (timing + impact
-    parameter per gate) with Levenberg-Marquardt. The spec records the
+    parameter per gate) with damped least squares. The spec records the
     achieved port headings — the machine defines its own ports."""
+    key = _cache_key(n_gates)
     if use_cache and SPEC_CACHE.exists():
         spec = json.loads(SPEC_CACHE.read_text())
-        if spec.get("n_gates") == n_gates and spec.get("bend") == BEND \
-                and spec.get("dt") == DT and spec.get("c_speed") == C_SPEED:
+        if all(spec.get(k) == v for k, v in key.items()):
             return spec
 
     log = print if verbose else (lambda *a: None)
@@ -308,8 +313,7 @@ def compile_pipeline(n_gates=4, use_cache=True, n_samples=250, verbose=False):
     if min(gaps) < 35.0:
         raise RuntimeError(f"compiled ports not separated: {np.round(ports, 1)}")
 
-    spec = {"n_gates": n_gates, "bend": BEND, "dt": DT, "c_speed": C_SPEED,
-            "t_end": t_end,
+    spec = {**key, "t_end": t_end,
             "gates": [{"t": g["t"], "d": g["d"], "b": b, "c_pos": g["c_pos"],
                        "c_vel": g["c_vel"]} for g, b in zip(gates, impact)],
             "ports": ports,

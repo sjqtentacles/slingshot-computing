@@ -9,15 +9,19 @@ event + four detector regions = a half adder.
 Cascade: the deflected output of gate 1 becomes the input signal of gate 2.
 Ball B always flies; bit A gates the first flyby, bit C is a third ball
 placed on a collision course with B's *post-gate-1* trajectory (anti-parallel
-closing, impact parameter 1 — same geometry as gate 1, rotated). B ends
-double-bent iff A AND C. Composition is what makes ballistic logic
-universal; it is also where chaos starts charging per-gate interest.
+closing, gate-1-like geometry rotated onto the new lane). The LAUNCH offset
+is not the impact parameter: C's long-range pull drags B off course during
+the whole approach, so the offset is calibrated on the full simulation
+(calibrated_d) until the ACHIEVED closest approach is a proper gate-1-scale
+encounter. B ends double-bent iff A AND C. Composition is what makes
+ballistic logic universal; it is also where chaos starts charging per-gate
+interest.
 """
 
 import numpy as np
 
 from . import nbody
-from .gates import BALL_A, BALL_B
+from .gates import BALL_A, BALL_B, PORT_SPLIT_DEG, T_END as GATE1_T_END
 
 # Gate 2 must sit well downstream of gate 1: deflection falls off only as
 # ~1/impact-parameter (no shielding, no insulation), so the straight lane and
@@ -25,7 +29,6 @@ from .gates import BALL_A, BALL_B
 # bending an innocent straight-through B. At T2=20 the lanes are ~9 apart.
 T2 = 20.0      # scheduled time of the second flyby
 T_END = 31.0   # cascade integration horizon
-GATE1_T_END = 22.0
 
 _frame_cache = None
 _cal_d_cache = None
@@ -103,7 +106,7 @@ def classify_cascade(res):
     splits bend2 from straight."""
     angle = _exit_angle(res)
     p = res["traj"][res["b_index"], -1]
-    if angle > 25.0:
+    if angle > PORT_SPLIT_DEG:
         return "bend1"
     return "bend2" if p[1] > 4.0 else "straight"
 

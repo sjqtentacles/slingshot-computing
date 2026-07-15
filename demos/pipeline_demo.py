@@ -12,7 +12,9 @@ Four gates is the depth ceiling of this launch-from-afar design: a 5th
 control can't be aimed through the accumulated field (see slingshot.pipeline).
 
 Runs all 16 input subsets, verifies the truth table, measures the chaos tax
-vs depth, and writes out/pipeline.json (+ out/pipeline_chaos.png).
+vs depth, and writes out/pipeline.json + the chaos figure to BOTH
+out/pipeline_chaos.png and docs/pipeline_chaos.png (the README embeds the
+latter, so it must be reproducible from this script).
 
 Usage: python -m demos.pipeline_demo   (from the repo root)
 """
@@ -121,8 +123,11 @@ def main():
     for s in ax.spines.values():
         s.set_color("#334")
     fig.tight_layout()
-    fig.savefig(OUT / "pipeline_chaos.png", dpi=150, facecolor=fig.get_facecolor())
-    print(f"wrote {OUT / 'pipeline_chaos.png'}")
+    docs = OUT.parent / "docs"
+    docs.mkdir(exist_ok=True)
+    for target in (OUT / "pipeline_chaos.png", docs / "pipeline_chaos.png"):
+        fig.savefig(target, dpi=150, facecolor=fig.get_facecolor())
+        print(f"wrote {target}")
 
 
 if __name__ == "__main__":

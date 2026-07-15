@@ -13,6 +13,8 @@ angle is tan(theta/2) = G(mA+mB)/(b v^2) = 0.5  ->  theta ~ 53 deg.
 Closest approach ~0.62, comfortably away from singularity.
 """
 
+import numpy as np
+
 from . import nbody
 
 BALL_A = {"m": 1.0, "pos": [-10.0, 0.5], "vel": [1.0, 0.0]}
@@ -33,7 +35,6 @@ def run_switch(a_present, n_samples=600):
 
 
 def classify_port(result):
-    import numpy as np
 
     v = result["vel"][result["b_index"], -1]
     # angle of exit velocity measured CCW from the -x axis

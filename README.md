@@ -24,8 +24,8 @@ collisions replaced by two-body Kepler scattering. No forces but `F = Gm₁m₂/
 | **03** | [The pipeline](#03--the-4-gate-pipeline-flagship) | a 4-input priority encoder + 4-input AND, in one 5-body machine |
 
 All three run as self-contained Python and render as animated HTML viewers
-(`python -m demos.build_viewer`). Everything is verified by a **56-test suite**
-covering physics invariants and every truth table.
+(`python3 -m demos.build_viewer`). Everything is verified by the test suite
+(physics invariants, every truth table, error paths, demo contracts).
 
 ---
 
@@ -77,8 +77,9 @@ through gate 2 — ~1 digit of precision per gate, with no restoring force.
 **four gravitational gates in series**. Each present control bends B one 54°
 port-step deeper, so B's exit port = **index of the first absent control** — a
 **4-input priority encoder** — and all-present is a **4-input AND** at the deepest
-port. All 16 inputs verified, worst decision margin 15.4° against a 27° boundary,
-energy drift `1.3e-12`.
+port. All 16 inputs verified; worst decision margin measured 15.4° against the 27°
+boundary (tests enforce < 20°); energy drift on the deep run `1.3e-12` (tests
+enforce < 1e-9).
 
 **The compiler is the interesting part.** The five bodies form one coupled system
 (no gravitational shielding), so gates can't be calibrated independently — naive
@@ -93,7 +94,7 @@ and can't be aimed onto B — its calibration Jacobian goes flat. Gates 1–4 co
 every time; gate 5 never lands. **Chaos bounds computational *depth*, not just
 precision** — and the two limits are separable: the measured chaos tax (~1.1
 digits/gate, 4.4 across the chain) would allow ~13 gates on float64, so *aiming*,
-not precision, is what caps this design at ~5.
+not precision, is the binding limit — the wall arrives at the 5th gate.
 
 <p align="center">
   <img src="docs/pipeline_chaos.png" width="560" alt="Log-scale staircase: a launch perturbation stays flat, then jumps at each of the four gates">
@@ -104,15 +105,15 @@ not precision, is what caps this design at ~5.
 ## Run it
 
 ```bash
-pip install -r requirements.txt
+python3 -m pip install -r requirements.txt
 
-python -m demos.switch_demo        # 01: SWITCH gate
-python -m demos.arithmetic_demo    # 02: half adder + cascade + chaos tax
-python -m demos.pipeline_demo      # 03: 4-gate priority encoder + AND (flagship)
+python3 -m demos.switch_demo        # 01: SWITCH gate
+python3 -m demos.arithmetic_demo    # 02: half adder + cascade + chaos tax
+python3 -m demos.pipeline_demo      # 03: 4-gate priority encoder + AND (flagship)
 
-python -m demos.build_viewer       # build the interactive out/*.html viewers
-python -m demos.make_gifs          # re-render docs/*.gif
-python -m pytest                   # 56-test suite
+python3 -m demos.build_viewer       # build the interactive out/*.html viewers
+python3 -m demos.make_gifs          # re-render docs/*.gif
+python3 -m pytest                   # full test suite (74 tests)
 ```
 
 Each demo prints its truth table and measurements and writes plots + trajectory
@@ -124,15 +125,16 @@ JSON to `out/`. The pipeline spec is cached in `out/pipeline_spec.json`
 - Pure pairwise Newtonian gravity, `G = 1`, planar, **no softening** — softening
   would smear out the sharp scattering the gates depend on.
 - Adaptive high-order Runge–Kutta (scipy `DOP853`, `rtol = atol = 1e-12`); energy
-  drift on the demos is `~1e-13`. Calibration relaxes tolerance for speed, then
-  validates the finished machine at full precision.
+  drift ranges `1e-13` (single-gate demos) to `1e-12` (the 4-gate pipeline).
+  Calibration relaxes tolerance for speed, then validates the finished machine
+  at full precision.
 
 ## Layout
 
 ```
 slingshot/     nbody.py (integrator) · gates.py · circuits.py · pipeline.py (compiler)
 demos/         one runnable script + HTML viewer per demo, plus make_gifs.py
-tests/         physics invariants + every truth table (56 tests)
+tests/         physics invariants, truth tables, error paths, demo contracts (74 tests)
 docs/          the GIFs above
 ```
 
