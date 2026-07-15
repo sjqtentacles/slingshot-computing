@@ -1,0 +1,458 @@
+<meta charset="utf-8">
+<title>Gravity Does Arithmetic</title>
+<style>
+  :root {
+    --ground: #070a14;
+    --panel: #10152a;
+    --panel-edge: #1b2342;
+    --grid: #141b36;
+    --text: #c9d2ea;
+    --text-dim: #6a7494;
+    --signal: #54d1ff;
+    --bit: #ffb454;
+    --third: #b48cff;
+    --port-off: #2a3357;
+    --display: "Futura", "Avenir Next", "Century Gothic", system-ui, sans-serif;
+    --body: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  html { background: var(--ground); }
+  body {
+    background: var(--ground); color: var(--text); font-family: var(--body);
+    margin: 0; padding: 28px 20px 48px; display: flex; justify-content: center;
+  }
+  .wrap { width: 100%; max-width: 880px; display: flex; flex-direction: column; gap: 20px; }
+  .wrap > * { flex-shrink: 0; }
+
+  header .eyebrow {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.22em;
+    color: var(--bit); text-transform: uppercase;
+  }
+  header h1 {
+    font-family: var(--display); font-weight: 500;
+    font-size: clamp(24px, 4.5vw, 34px); letter-spacing: 0.06em;
+    text-transform: uppercase; margin: 6px 0 8px; text-wrap: balance;
+  }
+  header p { margin: 0; max-width: 62ch; line-height: 1.55; color: var(--text-dim); }
+  header p b { color: var(--text); font-weight: 600; }
+
+  .section-label {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.22em;
+    text-transform: uppercase; color: var(--bit);
+    border-top: 1px solid var(--panel-edge); padding-top: 14px; margin-top: 8px;
+  }
+  .section-label .n { color: var(--text-dim); }
+  h2 {
+    font-family: var(--display); font-weight: 500; font-size: 21px;
+    letter-spacing: 0.05em; text-transform: uppercase; margin: 2px 0 0;
+  }
+  .blurb { margin: 4px 0 0; max-width: 62ch; line-height: 1.55; color: var(--text-dim); font-size: 14.5px; }
+  .blurb b { color: var(--text); }
+
+  .controls {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+    font-family: var(--mono); font-size: 13px;
+  }
+  .controls .label { color: var(--text-dim); letter-spacing: 0.12em; font-size: 11px; text-transform: uppercase; }
+  .controls .auto { color: var(--text-dim); font-size: 11px; letter-spacing: 0.1em; margin-left: auto; text-transform: uppercase; }
+  .controls .auto::before { content: "● "; color: var(--bit); }
+  .controls .auto.off::before { color: var(--port-off); }
+  button {
+    font-family: var(--mono); font-size: 13px;
+    background: var(--panel); color: var(--text);
+    border: 1px solid var(--panel-edge); border-radius: 4px;
+    padding: 8px 16px; cursor: pointer;
+  }
+  button:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+  button:hover { border-color: #3a4570; }
+  button.on { border-color: var(--bit); color: var(--bit); background: #1d1607; }
+  button.third.on { border-color: var(--third); color: var(--third); background: #171027; }
+
+  .stage { border: 1px solid var(--panel-edge); border-radius: 6px; overflow: hidden; background: var(--ground); }
+  canvas { display: block; width: 100%; height: auto; }
+
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+  .fact { border-top: 1px solid var(--panel-edge); padding-top: 10px; }
+  .fact .k {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--bit); margin-bottom: 6px;
+  }
+  .fact p { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--text-dim); }
+  .fact b { color: var(--text); }
+  .fact code { font-family: var(--mono); color: var(--text); font-size: 12.5px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Slingshot Computing &middot; Demo 02</div>
+    <h1>Gravity Does Arithmetic</h1>
+    <p>Two circuits built from nothing but Newtonian point masses. First, one flyby
+    used as a full <b>half adder</b> — gravity adds two bits. Then the milestone that
+    makes ballistic logic a computer at all: <b>two gates composed in series</b>, the
+    deflected output of one flyby flying on to become the input of the next.</p>
+  </header>
+
+  <div>
+    <div class="section-label"><span class="n">01 &middot;</span> Half adder</div>
+    <h2 id="adder-eq">1 + 1 = 10</h2>
+    <p class="blurb">The flyby is Fredkin&ndash;Toffoli's <i>interaction gate</i>. Both balls are
+    input bits now. Deflected exits fire only when both flew — that's the <b>carry</b>
+    (A&thinsp;AND&thinsp;B). Straight-through exits fire only when exactly one flew — that's the
+    <b>sum</b> (A&thinsp;XOR&thinsp;B). Binary addition from one gravitational encounter.</p>
+  </div>
+  <div class="controls" id="adder-controls">
+    <span class="label">Inputs</span>
+    <button id="adder-a">A = 1</button>
+    <button id="adder-b">B = 1</button>
+    <button class="run" id="adder-run">&#9654; Run</button>
+    <span class="auto" id="adder-auto">auto demo</span>
+  </div>
+  <div class="stage"><canvas id="adder-cv" width="1320" height="1020"></canvas></div>
+
+  <div>
+    <div class="section-label"><span class="n">02 &middot;</span> Two gates in series</div>
+    <h2 id="casc-eq">A AND C = 1</h2>
+    <p class="blurb">Ball B always flies. Bit <b>A</b> gates the first flyby; bit <b>C</b> is a third
+    ball aimed at B's <i>post-gate-1</i> trajectory. B ends double-bent only if A bent it
+    onto C's lane <i>and</i> C was there — a genuine AND, computed by composition. The aim
+    can't come from billiard geometry: gravity has no shielding, so C's pull drags B
+    off course during the whole approach, and the wire must be calibrated on the full
+    three-body problem.</p>
+  </div>
+  <div class="controls" id="casc-controls">
+    <span class="label">Inputs</span>
+    <button id="casc-a">A = 1</button>
+    <button class="third" id="casc-c">C = 1</button>
+    <button class="run" id="casc-run">&#9654; Run</button>
+    <span class="auto" id="casc-auto">auto demo</span>
+  </div>
+  <div class="stage"><canvas id="casc-cv" width="1240" height="1240"></canvas></div>
+
+  <div class="facts">
+    <div class="fact">
+      <div class="k">The chaos tax &middot; measured</div>
+      <p>Nudge B's launch by 10<sup>&minus;8</sup>: gate&nbsp;1 grows the error
+      <b id="tax1">&times;6</b>, gate&nbsp;2 another <b id="tax2">&times;17</b> —
+      about <b id="taxd">1 digit</b> of launch precision spent per gate, with no
+      restoring force to win it back. Float64 bankrolls
+      <b id="taxg">~12 gates</b> at this scale. That decay curve is the research object.</p>
+    </div>
+    <div class="fact">
+      <div class="k">No shielding, no insulation</div>
+      <p>Deflection falls off only as <code>~1/b</code> (impact parameter), so idle
+      trajectories still bend each other: the straight lane picks up a 7&deg; crosstalk
+      nudge from C's passing. Gates must be spaced so logic lanes diverge before
+      wires cross — routing <i>is</i> part of the physics.</p>
+    </div>
+    <div class="fact">
+      <div class="k">Why composition matters</div>
+      <p>One gate is a curiosity; gates that <i>feed each other</i> are a computer.
+      The interaction gate plus routing is universal in the billiard-ball model,
+      and gate&nbsp;2 here consumes gate&nbsp;1's output in flight — same trick,
+      pure gravity. Numerics: DOP853, rtol 10<sup>&minus;12</sup>, energy drift
+      &le; 7&times;10<sup>&minus;13</sup> across all runs.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const DATA = /*__DATA__*/;
+
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { signal: css('--signal'), bit: css('--bit'), third: css('--third'),
+            grid: css('--grid'), dim: css('--text-dim'), off: css('--port-off') };
+const MONO = 'ui-monospace, Menlo, monospace';
+const BODY_COLOR = { A: C.bit, B: C.signal, C: C.third };
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function makeSim(cfg) {
+  const cv = document.getElementById(cfg.canvas);
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  const [WX0, WX1, WY0, WY1] = cfg.world;
+  const sx = W / (WX1 - WX0), sy = H / (WY1 - WY0);
+  const px = p => [(p[0] - WX0) * sx, H - (p[1] - WY0) * sy];
+
+  const stars = [];
+  let seed = cfg.seed;
+  const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+  for (let i = 0; i < 170; i++) stars.push([rnd() * W, rnd() * H, rnd() * 1.4 + 0.3, rnd() * 0.5 + 0.15]);
+
+  // per-case time warp: dwell on every close approach between any pair
+  const warp = {};
+  for (const [key, run] of Object.entries(cfg.cases)) {
+    const n = run.t.length, dwell = [];
+    for (let i = 0; i < run.bodies.length; i++)
+      for (let j = i + 1; j < run.bodies.length; j++) {
+        let best = Infinity, at = 0;
+        for (let k = 0; k < n; k++) {
+          const p = run.bodies[i][k], q = run.bodies[j][k];
+          const d = (p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2;
+          if (d < best) { best = d; at = k; }
+        }
+        if (best < 9) dwell.push(at);
+      }
+    const cum = [0];
+    for (let k = 1; k < n; k++) {
+      let w = 1;
+      for (const at of dwell) w += 7 * Math.exp(-((k - at) ** 2) / (2 * 20 * 20));
+      cum.push(cum[k - 1] + w);
+    }
+    warp[key] = cum;
+  }
+
+  let caseKey = cfg.autoSeq[cfg.autoSeq.length - 1];
+  let frame = 0, playing = false, raf = null, t0 = 0, holdTimer = null, auto = true;
+
+  const frameAt = elapsed => {
+    const cum = warp[caseKey], n = cum.length;
+    const target = Math.min(elapsed / cfg.durationMs, 1) * cum[n - 1];
+    let lo = 0, hi = n - 1;
+    while (lo < hi) { const mid = (lo + hi) >> 1; if (cum[mid] < target) lo = mid + 1; else hi = mid; }
+    return lo;
+  };
+
+  function drawBase() {
+    ctx.clearRect(0, 0, W, H);
+    for (const [x, y, r, a] of stars) {
+      ctx.globalAlpha = a; ctx.fillStyle = '#9fb0dd';
+      ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = C.grid; ctx.lineWidth = 1;
+    for (let gx = Math.ceil(WX0 / 4) * 4; gx <= WX1; gx += 4) {
+      const [X] = px([gx, 0]);
+      ctx.beginPath(); ctx.moveTo(X, 0); ctx.lineTo(X, H); ctx.stroke();
+    }
+    for (let gy = Math.ceil(WY0 / 4) * 4; gy <= WY1; gy += 4) {
+      const [, Y] = px([0, gy]);
+      ctx.beginPath(); ctx.moveTo(0, Y); ctx.lineTo(W, Y); ctx.stroke();
+    }
+  }
+
+  function drawGhost(pts, color) {
+    ctx.save();
+    ctx.globalAlpha = 0.15; ctx.strokeStyle = color; ctx.lineWidth = 2;
+    ctx.setLineDash([5, 9]);
+    ctx.beginPath(); ctx.moveTo(...px(pts[0]));
+    for (let i = 2; i < pts.length; i += 2) ctx.lineTo(...px(pts[i]));
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function ring(at, label, color, lit, labelDx = 0) {
+    const [X, Y] = px(at);
+    ctx.setLineDash(lit ? [] : [5, 5]);
+    ctx.lineWidth = lit ? 4 : 2;
+    ctx.strokeStyle = lit ? color : C.off;
+    if (lit) { ctx.shadowColor = color; ctx.shadowBlur = 24; }
+    ctx.beginPath(); ctx.arc(X, Y, cfg.ringR, 0, 7); ctx.stroke();
+    ctx.shadowBlur = 0; ctx.setLineDash([]);
+    ctx.font = '600 22px ' + MONO;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = lit ? color : C.dim;
+    ctx.fillText(label, X + labelDx, Y - cfg.ringR - 14);
+  }
+
+  function drawTrail(pts, upto, color) {
+    ctx.lineWidth = 3.5; ctx.lineCap = 'round';
+    const start = Math.max(1, upto - 260);
+    for (let i = start; i <= upto; i++) {
+      ctx.globalAlpha = 0.08 + 0.85 * ((i - start) / (upto - start + 1));
+      ctx.strokeStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(...px(pts[i - 1])); ctx.lineTo(...px(pts[i]));
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    const [X, Y] = px(pts[upto]);
+    ctx.shadowColor = color; ctx.shadowBlur = 26;
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(X, Y, 9, 0, 7); ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  function render() {
+    const run = cfg.cases[caseKey];
+    const done = frame >= run.t.length - 1;
+    drawBase();
+    for (const [pts, color] of cfg.ghosts) drawGhost(pts, color);
+    cfg.drawPorts(ring, caseKey, run, done);
+    run.names.forEach((name, i) => drawTrail(run.bodies[i], frame, BODY_COLOR[name]));
+    cfg.banner(ctx, caseKey, run, done);
+    cfg.readout(caseKey, run, done);
+  }
+
+  function tick(now) {
+    frame = frameAt(now - t0);
+    render();
+    const n = cfg.cases[caseKey].t.length;
+    if (frame < n - 1 && playing) raf = requestAnimationFrame(tick);
+    else if (playing) {
+      playing = false;
+      if (auto && !reduced)
+        holdTimer = setTimeout(() => {
+          const seq = cfg.autoSeq;
+          setCase(seq[(seq.indexOf(caseKey) + 1) % seq.length], true);
+        }, 1700);
+    }
+  }
+
+  function play() {
+    cancelAnimationFrame(raf); clearTimeout(holdTimer);
+    if (reduced) { frame = cfg.cases[caseKey].t.length - 1; playing = false; render(); return; }
+    frame = 0; playing = true; t0 = performance.now();
+    raf = requestAnimationFrame(tick);
+  }
+
+  function setAuto(on) {
+    auto = on;
+    const el = document.getElementById(cfg.autoEl);
+    el.classList.toggle('off', !on);
+    el.textContent = on ? 'auto demo' : 'manual';
+  }
+
+  function setCase(key, fromAuto) {
+    if (!fromAuto) setAuto(false);
+    caseKey = key;
+    cfg.syncButtons(key);
+    play();
+  }
+
+  return { setCase, play, setAuto, current: () => caseKey };
+}
+
+/* ---------- half adder ---------- */
+
+const AD = DATA.adder;
+const adderGhosts = [
+  [AD['10'].bodies[0], C.bit],     // A straight
+  [AD['01'].bodies[0], C.signal],  // B straight
+  [AD['11'].bodies[0], C.bit],     // A deflected
+  [AD['11'].bodies[1], C.signal],  // B deflected
+];
+const SUM_PORTS = [[12.0, 0.5], [-12.0, -0.5]];
+const CARRY_PORTS = [[-8.3, 10.1], [8.3, -10.1]];
+const near = (p, at) => Math.hypot(p[0] - at[0], p[1] - at[1]) < 2.2;
+
+const adder = makeSim({
+  canvas: 'adder-cv', seed: 47, world: [-16.5, 16.5, -12.5, 13.0],
+  cases: AD, durationMs: 6000, ringR: 30, autoEl: 'adder-auto',
+  ghosts: adderGhosts, autoSeq: ['01', '10', '11', '00'],
+  drawPorts(ring, key, run, done) {
+    const finals = done ? run.names.map((_, i) => run.bodies[i][run.bodies[i].length - 1]) : [];
+    for (const at of SUM_PORTS) ring(at, 'SUM', C.signal, finals.some(p => near(p, at)));
+    for (const at of CARRY_PORTS) ring(at, 'CARRY', C.bit, finals.some(p => near(p, at)));
+  },
+  banner(ctx, key, run, done) {
+    ctx.textAlign = 'left';
+    ctx.font = '600 34px ' + MONO;
+    ctx.fillStyle = C.bit;
+    ctx.fillText(`${key[0]} + ${key[1]}`, 28, 56);
+    ctx.fillStyle = done ? C.signal : C.dim;
+    if (done) { ctx.shadowColor = C.signal; ctx.shadowBlur = 18; }
+    ctx.fillText(done ? `= ${run.carry}${run.sum}` : '= ··', 28, 100);
+    ctx.shadowBlur = 0;
+  },
+  readout(key, run, done) {
+    document.getElementById('adder-eq').textContent =
+      `${key[0]} + ${key[1]} = ` + (done ? `${run.carry}${run.sum}` : '··');
+  },
+  syncButtons(key) {
+    document.getElementById('adder-a').classList.toggle('on', key[0] === '1');
+    document.getElementById('adder-b').classList.toggle('on', key[1] === '1');
+    document.getElementById('adder-a').textContent = 'A = ' + key[0];
+    document.getElementById('adder-b').textContent = 'B = ' + key[1];
+  },
+});
+
+const adderBit = i => () => {
+  const k = adder.current().split('');
+  k[i] = k[i] === '1' ? '0' : '1';
+  adder.setCase(k.join(''));
+};
+document.getElementById('adder-a').onclick = adderBit(0);
+document.getElementById('adder-b').onclick = adderBit(1);
+document.getElementById('adder-run').onclick = () => { adder.setAuto(false); adder.play(); };
+
+/* ---------- cascade ---------- */
+
+const CS = DATA.cascade;
+const bTraj = key => CS[key].bodies[CS[key].b_index];
+const bEnd = key => { const p = bTraj(key); return p[p.length - 1]; };
+const cascGhosts = [
+  [bTraj('00'), C.signal],
+  [bTraj('10'), C.signal],
+  [bTraj('11'), C.signal],
+  [CS['11'].bodies[0], C.bit],                       // A
+  [CS['11'].bodies[CS['11'].names.indexOf('C')], C.third],  // C
+];
+const CASC_PORTS = {
+  straight: { at: bEnd('00'), label: 'OUT 0 · STRAIGHT', dx: 130 },
+  bend1:    { at: bEnd('10'), label: 'OUT 0 · ONE BEND', dx: 0 },
+  bend2:    { at: bEnd('11'), label: 'OUT 1 · A∧C', dx: 40 },
+};
+
+const casc = makeSim({
+  canvas: 'casc-cv', seed: 91, world: [-23.5, 12.5, -11.0, 25.0],
+  cases: CS, durationMs: 8000, ringR: 32, autoEl: 'casc-auto',
+  ghosts: cascGhosts, autoSeq: ['10', '01', '11', '00'],
+  drawPorts(ring, key, run, done) {
+    for (const [name, port] of Object.entries(CASC_PORTS))
+      ring(port.at, port.label, name === 'bend2' ? C.bit : C.signal,
+           done && run.port === name, port.dx);
+  },
+  banner(ctx, key, run, done) {
+    ctx.textAlign = 'left';
+    ctx.font = '500 18px ' + MONO;
+    ctx.fillStyle = C.dim;
+    ctx.fillText('INPUT', 26, 42);
+    ctx.fillText('OUTPUT', 26, 128);
+    ctx.font = '600 30px ' + MONO;
+    ctx.fillStyle = C.bit;  ctx.fillText('A = ' + key[0], 26, 74);
+    ctx.fillStyle = C.third; ctx.fillText('C = ' + key[1], 150, 74);
+    if (done) {
+      const on = run.out === 1;
+      ctx.fillStyle = on ? C.bit : C.signal;
+      ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 16;
+      ctx.fillText('A∧C = ' + run.out, 26, 160);
+      ctx.shadowBlur = 0;
+    } else {
+      ctx.fillStyle = C.dim; ctx.fillText('in flight…', 26, 160);
+    }
+  },
+  readout(key, run, done) {
+    document.getElementById('casc-eq').textContent =
+      `A AND C = ` + (done ? run.out : '··');
+  },
+  syncButtons(key) {
+    document.getElementById('casc-a').classList.toggle('on', key[0] === '1');
+    document.getElementById('casc-c').classList.toggle('on', key[1] === '1');
+    document.getElementById('casc-a').textContent = 'A = ' + key[0];
+    document.getElementById('casc-c').textContent = 'C = ' + key[1];
+  },
+});
+
+const cascBit = i => () => {
+  const k = casc.current().split('');
+  k[i] = k[i] === '1' ? '0' : '1';
+  casc.setCase(k.join(''));
+};
+document.getElementById('casc-a').onclick = cascBit(0);
+document.getElementById('casc-c').onclick = cascBit(1);
+document.getElementById('casc-run').onclick = () => { casc.setAuto(false); casc.play(); };
+
+/* ---------- chaos numbers ---------- */
+const CH = DATA.chaos;
+document.getElementById('tax1').textContent =
+  '×' + Math.round(CH.after_gate1 / CH.delta);
+document.getElementById('tax2').textContent =
+  '×' + Math.round(CH.after_gate2 / CH.after_gate1);
+document.getElementById('taxd').textContent =
+  CH.digits_gate2.toFixed(1) + ' digits';
+document.getElementById('taxg').textContent =
+  '~' + Math.floor(15 / Math.max(CH.digits_gate1, CH.digits_gate2)) + ' gates';
+
+adder.setCase('11', true);
+casc.setCase('11', true);
+</script>

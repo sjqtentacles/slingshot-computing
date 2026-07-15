@@ -17,15 +17,41 @@ Ball B (the signal) always flies. Bit A is whether ball A is launched.
 A switch is universal-adjacent: switches + routing (slingshot "mirrors" around
 heavy masses) give AND/OR/NOT the same way the billiard-ball model does.
 
+## Demo 02: gravity does arithmetic
+
+`slingshot/circuits.py` builds two composed circuits on the primitive:
+
+- **Half adder** — the flyby is Fredkin–Toffoli's *interaction gate*: with both
+  balls as input bits, deflected exits = CARRY (A∧B), straight exits = SUM
+  (A⊕B at the detector level). All four cases verified: 1+1=10.
+- **Gate cascade** — ball B always flies; bit A gates flyby 1, bit C is a third
+  ball aimed at B's *post-gate-1* trajectory. B ends double-bent iff A∧C.
+  Composition is the step that makes ballistic logic a computer.
+
+Two lessons the cascade forced (both now measured, see `demos/arithmetic_demo.py`):
+
+- **No shielding**: C's long-range pull drags B off its gate-1 course during the
+  whole approach — the naive billiard aim collapses the impact parameter from
+  1.0 to 0.1. Wires must be calibrated on the full three-body problem
+  (`circuits.calibrated_d()`, root-found on the simulation).
+- **No insulation**: deflection falls off only as ~1/b, so idle lanes bend each
+  other (7° crosstalk on the straight lane). Gate 2 had to move downstream
+  until the logic lanes diverged ~9 units before C's wire could cross safely.
+
+**The chaos tax, measured**: a 1e-8 launch offset grows ×6 through gate 1 and
+×17 through gate 2 — ~1 digit of precision per gate, no restoring force. Float64
+affords ~12 gates at this scale (`out/chaos.png`).
+
 ## Run it
 
 ```
-python3 -m demos.switch_demo
+python3 -m demos.switch_demo       # demo 01: SWITCH gate
+python3 -m demos.arithmetic_demo   # demo 02: half adder + cascade + chaos tax
+python3 -m demos.build_viewer      # build out/viewer.html + out/arithmetic.html
 ```
 
-Prints the port classification and energy drift for both runs, writes
-`out/switch.png` (trajectory plot) and `out/switch.json` (trajectories for the
-animated HTML viewer).
+Each demo prints its truth table / measurements and writes plots + trajectory
+JSON to `out/` for the animated HTML viewers.
 
 ## Physics / numerics
 
@@ -49,7 +75,9 @@ animated HTML viewer).
 ## Roadmap
 
 - [x] SWITCH gate (one flyby, two ports)
+- [x] AND gate (cascade: two flybys composed in series)
+- [x] Half adder (interaction gate + detector regions)
+- [x] Measure bits-of-precision consumed per gate
 - [ ] Slingshot mirror: route a signal around a heavy fixed mass
-- [ ] Compose two gates; measure bits-of-precision consumed per gate vs. λt
-- [ ] AND gate from switch + routing
 - [ ] Dual-rail encoding so absence-of-ball isn't the only "0"
+- [ ] Fan-out / signal copying (the hard one: no cloning in reversible ballistics)
