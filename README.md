@@ -1,5 +1,7 @@
 # Slingshot Computing
 
+[![tests](https://github.com/sjqtentacles/slingshot-computing/actions/workflows/tests.yml/badge.svg)](https://github.com/sjqtentacles/slingshot-computing/actions/workflows/tests.yml)
+
 **Logic gates, arithmetic, and a programmable pipeline built from nothing but Newtonian point-mass gravity.**
 
 Bits are the presence or absence of small bodies on ballistic trajectories; gates
@@ -137,6 +139,15 @@ demos/         one runnable script + HTML viewer per demo, plus make_gifs.py
 tests/         physics invariants, truth tables, error paths, demo contracts (74 tests)
 docs/          the GIFs above
 ```
+
+## The arc: logic + memory
+
+This repo is the *logic* half of a two-project arc. The *memory* half is
+[orbital-memory](https://github.com/sjqtentacles/orbital-memory): a nonvolatile bit
+stored in which Lagrange island a moonlet librates (write by adiabatic mass growth,
+cool by station-keeping burns, hold topologically). The two meet in that repo's
+capstone: **an aimed flyby — this project's mechanism — conditionally erases a
+stored orbital bit.** Logic acting on memory, all of it pure gravity.
 
 ## Honest caveats & prior art
 
