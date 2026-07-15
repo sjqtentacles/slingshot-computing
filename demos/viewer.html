@@ -52,6 +52,12 @@
     font-family: var(--mono); font-size: 13px;
   }
   .controls .label { color: var(--text-dim); letter-spacing: 0.12em; font-size: 11px; text-transform: uppercase; }
+  .controls .auto {
+    color: var(--text-dim); font-size: 11px; letter-spacing: 0.1em;
+    margin-left: auto; text-transform: uppercase;
+  }
+  .controls .auto::before { content: "● "; color: var(--bit); }
+  .controls .auto.off::before { color: var(--port-off); }
   button {
     font-family: var(--mono); font-size: 13px;
     background: var(--panel); color: var(--text);
@@ -60,7 +66,7 @@
   }
   button:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
   button.bit.active { border-color: var(--bit); color: var(--bit); background: #1d1607; }
-  button.run { border-color: var(--signal); color: var(--signal); margin-left: auto; }
+  button.run { border-color: var(--signal); color: var(--signal); }
   button.run:hover { background: #0a2233; }
   button.bit:hover { border-color: #3a4570; }
 
@@ -105,8 +111,6 @@
   }
   .fact p { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--text-dim); }
   .fact code { font-family: var(--mono); color: var(--text); font-size: 12.5px; }
-
-  @media (prefers-reduced-motion: reduce) { .skip-anim { display: inline; } }
 </style>
 
 <div class="wrap">
@@ -116,7 +120,8 @@
     <p>One bit of computation from nothing but Newtonian gravity. Ball <b>B</b> (cyan)
     is the signal and always flies. The input bit is whether ball <b>A</b> (amber) is
     launched: absent, B coasts straight into <b>port 0</b>; present, a close hyperbolic
-    flyby bends B ~54&deg; into <b>port 1</b>.</p>
+    flyby bends B ~54&deg; into <b>port 1</b>. The demo alternates both inputs on a loop
+    &mdash; grab a button to drive it yourself.</p>
   </header>
 
   <div class="controls">
@@ -124,6 +129,7 @@
     <button class="bit" id="bit0">A = 0 &middot; absent</button>
     <button class="bit active" id="bit1">A = 1 &middot; present</button>
     <button class="run" id="run">&#9654; Run</button>
+    <span class="auto" id="auto">auto demo</span>
   </div>
 
   <div class="stage"><canvas id="cv" width="1320" height="900"></canvas></div>
@@ -176,16 +182,41 @@ const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff
 for (let i = 0; i < 160; i++) stars.push([rnd() * W, rnd() * H, rnd() * 1.4 + 0.3, rnd() * 0.5 + 0.15]);
 
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-const C = { signal: css('--signal'), bit: css('--bit'), grid: css('--grid'), dim: css('--text-dim') };
+const C = { signal: css('--signal'), bit: css('--bit'), grid: css('--grid'),
+            dim: css('--text-dim'), off: css('--port-off') };
+const MONO = 'ui-monospace, Menlo, monospace';
+
+const N = DATA.present.t.length;
+
+// index of closest approach in the A-present run — the animation dwells there
+let iEnc = 0, dEnc = Infinity;
+for (let i = 0; i < N; i++) {
+  const a = DATA.present.bodies[0][i], b = DATA.present.bodies[1][i];
+  const d = (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2;
+  if (d < dEnc) { dEnc = d; iEnc = i; }
+}
+
+// time warp: each sample's screen-duration weight, peaked at the encounter,
+// so the flyby plays in slow motion. cumulative sum maps elapsed -> frame.
+const cum = [0];
+for (let i = 1; i < N; i++)
+  cum.push(cum[i - 1] + 1 + 7 * Math.exp(-((i - iEnc) ** 2) / (2 * 20 * 20)));
+const CUM_TOTAL = cum[N - 1];
+const DURATION_MS = 7000, HOLD_MS = 1900;
+
+function frameAt(elapsed) {
+  const target = Math.min(elapsed / DURATION_MS, 1) * CUM_TOTAL;
+  let lo = 0, hi = N - 1;
+  while (lo < hi) { const mid = (lo + hi) >> 1; if (cum[mid] < target) lo = mid + 1; else hi = mid; }
+  return lo;
+}
 
 let scenario = 'present';
-let frame = 0, playing = false, raf = null, t0 = 0;
-const N = DATA.present.t.length;
-const DURATION_MS = 5000;
+let frame = 0, playing = false, raf = null, t0 = 0, holdTimer = null, auto = true;
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const PORTS = {
-  0: { at: [-15.2, -0.5], color: C.signal },
+  0: { at: [-12.0, -0.5], color: C.signal },
   1: { at: [-8.2, 10.6], color: C.bit },
 };
 
@@ -205,26 +236,38 @@ function drawBase() {
     const [, Y] = px([0, gy]);
     ctx.beginPath(); ctx.moveTo(0, Y); ctx.lineTo(W, Y); ctx.stroke();
   }
-  // port markers
-  const run = DATA[scenario];
+}
+
+function drawGhost(pts, color, alpha, dashed) {
+  ctx.save();
+  ctx.globalAlpha = alpha; ctx.strokeStyle = color; ctx.lineWidth = 2;
+  if (dashed) ctx.setLineDash([5, 9]);
+  ctx.beginPath(); ctx.moveTo(...px(pts[0]));
+  for (let i = 2; i < pts.length; i += 2) ctx.lineTo(...px(pts[i]));
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawPorts(run, done) {
   for (const [id, port] of Object.entries(PORTS)) {
     const [X, Y] = px(port.at);
-    const hit = frame >= N - 1 && String(run.port) === id;
-    ctx.strokeStyle = hit ? port.color : css('--port-off');
-    ctx.fillStyle = hit ? port.color : C.dim;
-    ctx.lineWidth = 2;
-    ctx.setLineDash([5, 5]);
-    ctx.beginPath(); ctx.arc(X, Y, 34, 0, 7); ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.font = '600 20px ui-monospace, Menlo, monospace';
+    const hit = done && String(run.port) === id;
+    ctx.setLineDash(hit ? [] : [5, 5]);
+    ctx.lineWidth = hit ? 4 : 2;
+    ctx.strokeStyle = hit ? port.color : C.off;
+    if (hit) { ctx.shadowColor = port.color; ctx.shadowBlur = 24; }
+    ctx.beginPath(); ctx.arc(X, Y, 36, 0, 7); ctx.stroke();
+    ctx.shadowBlur = 0; ctx.setLineDash([]);
+    ctx.font = '600 24px ' + MONO;
     ctx.textAlign = 'center';
-    ctx.fillText('PORT ' + id, X, Y - 46);
+    ctx.fillStyle = hit ? port.color : C.dim;
+    ctx.fillText('PORT ' + id, X, Y - 50);
   }
 }
 
 function drawTrail(pts, upto, color) {
-  ctx.lineWidth = 3; ctx.lineCap = 'round';
-  const start = Math.max(1, upto - 220);
+  ctx.lineWidth = 3.5; ctx.lineCap = 'round';
+  const start = Math.max(1, upto - 260);
   for (let i = start; i <= upto; i++) {
     ctx.globalAlpha = 0.08 + 0.85 * ((i - start) / (upto - start + 1));
     ctx.strokeStyle = color;
@@ -234,21 +277,47 @@ function drawTrail(pts, upto, color) {
   }
   ctx.globalAlpha = 1;
   const [X, Y] = px(pts[upto]);
-  ctx.shadowColor = color; ctx.shadowBlur = 18;
+  ctx.shadowColor = color; ctx.shadowBlur = 26;
   ctx.fillStyle = color;
-  ctx.beginPath(); ctx.arc(X, Y, 7, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.arc(X, Y, 9, 0, 7); ctx.fill();
   ctx.shadowBlur = 0;
+}
+
+function drawBanner(run, done) {
+  ctx.textAlign = 'left';
+  ctx.font = '500 20px ' + MONO;
+  ctx.fillStyle = C.dim;
+  ctx.fillText('INPUT', 28, 46);
+  ctx.fillText('OUTPUT', 28, 112);
+  ctx.font = '600 34px ' + MONO;
+  ctx.fillStyle = scenario === 'present' ? C.bit : C.signal;
+  ctx.fillText('bit A = ' + (scenario === 'present' ? 1 : 0), 28, 80);
+  if (done) {
+    const pc = PORTS[run.port].color;
+    ctx.fillStyle = pc; ctx.shadowColor = pc; ctx.shadowBlur = 18;
+    ctx.fillText('PORT ' + run.port, 28, 146);
+    ctx.shadowBlur = 0;
+  } else {
+    ctx.fillStyle = C.dim;
+    ctx.fillText('in flight…', 28, 146);
+  }
 }
 
 function render() {
   const run = DATA[scenario];
+  const done = frame >= N - 1;
   drawBase();
+  // both possible signal paths always visible: the story reads even when paused
+  drawGhost(DATA.absent.bodies[0], C.signal, 0.16, scenario === 'present');
+  drawGhost(DATA.present.bodies[1], C.signal, 0.16, scenario === 'absent');
+  if (scenario === 'present') drawGhost(DATA.present.bodies[0], C.bit, 0.13, false);
+  drawPorts(run, done);
   if (scenario === 'present') drawTrail(run.bodies[0], frame, C.bit);
   drawTrail(run.bodies[run.b_index], frame, C.signal);
+  drawBanner(run, done);
 
   document.getElementById('tv').textContent = run.t[frame].toFixed(2);
   document.getElementById('ev').textContent = run.energy_drift.toExponential(1);
-  const done = frame >= N - 1;
   document.getElementById('av').textContent = done ? run.exit_angle_deg.toFixed(2) : '—';
   const pv = document.getElementById('portv').firstElementChild;
   pv.textContent = done ? 'PORT ' + run.port : 'in flight';
@@ -256,29 +325,43 @@ function render() {
 }
 
 function tick(now) {
-  frame = Math.min(Math.floor(((now - t0) / DURATION_MS) * (N - 1)), N - 1);
+  frame = frameAt(now - t0);
   render();
   if (frame < N - 1 && playing) raf = requestAnimationFrame(tick);
-  else playing = false;
+  else if (playing) { playing = false; onFinish(); }
+}
+
+function onFinish() {
+  if (auto && !reduced)
+    holdTimer = setTimeout(
+      () => setScenario(scenario === 'present' ? 'absent' : 'present', true), HOLD_MS);
 }
 
 function play() {
-  cancelAnimationFrame(raf);
+  cancelAnimationFrame(raf); clearTimeout(holdTimer);
   if (reduced) { frame = N - 1; playing = false; render(); return; }
   frame = 0; playing = true; t0 = performance.now();
   raf = requestAnimationFrame(tick);
 }
 
-function setScenario(s) {
+function setScenario(s, fromAuto) {
+  if (!fromAuto) setAuto(false);
   scenario = s;
   document.getElementById('bit1').classList.toggle('active', s === 'present');
   document.getElementById('bit0').classList.toggle('active', s === 'absent');
   play();
 }
 
+function setAuto(on) {
+  auto = on;
+  const el = document.getElementById('auto');
+  el.classList.toggle('off', !on);
+  el.textContent = on ? 'auto demo' : 'manual';
+}
+
 document.getElementById('bit0').onclick = () => setScenario('absent');
 document.getElementById('bit1').onclick = () => setScenario('present');
-document.getElementById('run').onclick = play;
+document.getElementById('run').onclick = () => { setAuto(false); play(); };
 
 play();
 </script>
