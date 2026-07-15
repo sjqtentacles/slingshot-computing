@@ -1,0 +1,361 @@
+<meta charset="utf-8">
+<title>The Gravitational Pipeline</title>
+<style>
+  :root {
+    --ground: #070a14;
+    --panel: #10152a;
+    --panel-edge: #1b2342;
+    --grid: #141b36;
+    --text: #c9d2ea;
+    --text-dim: #6a7494;
+    --signal: #54d1ff;
+    --bit: #ffb454;
+    --port-off: #2a3357;
+    --good: #58e0a8;
+    --display: "Futura", "Avenir Next", "Century Gothic", system-ui, sans-serif;
+    --body: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  html { background: var(--ground); }
+  body {
+    background: var(--ground); color: var(--text); font-family: var(--body);
+    margin: 0; padding: 28px 20px 48px; display: flex; justify-content: center;
+  }
+  .wrap { width: 100%; max-width: 900px; display: flex; flex-direction: column; gap: 20px; }
+  .wrap > * { flex-shrink: 0; }
+
+  header .eyebrow {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.22em;
+    color: var(--bit); text-transform: uppercase;
+  }
+  header h1 {
+    font-family: var(--display); font-weight: 500;
+    font-size: clamp(25px, 4.6vw, 36px); letter-spacing: 0.05em;
+    text-transform: uppercase; margin: 6px 0 8px; text-wrap: balance;
+  }
+  header p { margin: 0; max-width: 64ch; line-height: 1.55; color: var(--text-dim); }
+  header p b { color: var(--text); font-weight: 600; }
+
+  .controls {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    font-family: var(--mono); font-size: 13px;
+  }
+  .controls .label { color: var(--text-dim); letter-spacing: 0.12em; font-size: 11px; text-transform: uppercase; margin-right: 4px; }
+  .controls .auto { color: var(--text-dim); font-size: 11px; letter-spacing: 0.1em; margin-left: auto; text-transform: uppercase; }
+  .controls .auto::before { content: "● "; color: var(--bit); }
+  .controls .auto.off::before { color: var(--port-off); }
+  button {
+    font-family: var(--mono); font-size: 13px;
+    background: var(--panel); color: var(--text);
+    border: 1px solid var(--panel-edge); border-radius: 4px;
+    padding: 8px 14px; cursor: pointer;
+  }
+  button:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+  button:hover { border-color: #3a4570; }
+  button.bit.on { border-color: var(--bit); color: var(--bit); background: #1d1607; }
+  button.run { border-color: var(--signal); color: var(--signal); }
+  button.run:hover { background: #0a2233; }
+
+  .stage { border: 1px solid var(--panel-edge); border-radius: 6px; overflow: hidden; background: var(--ground); }
+  canvas { display: block; width: 100%; height: auto; }
+
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
+  .fact { border-top: 1px solid var(--panel-edge); padding-top: 10px; }
+  .fact .k {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--bit); margin-bottom: 6px;
+  }
+  .fact p { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--text-dim); }
+  .fact b { color: var(--text); }
+  .fact code { font-family: var(--mono); color: var(--text); font-size: 12.5px; }
+  .fact.wall .k { color: var(--signal); }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Slingshot Computing &middot; Demo 03 &middot; Flagship</div>
+    <h1>The Gravitational Pipeline</h1>
+    <p>One signal ball <b>B</b> (cyan) threads <b>four gravitational gates</b> in series —
+    a five-body machine that computes a <b>4-input priority encoder</b>: B's exit port is the
+    index of the first <i>absent</i> control. All four present is a 4-input AND (deepest port);
+    the first gap stops the cascade. Sixteen inputs, five ports, pure Newtonian gravity —
+    compiled by solving the whole coupled trajectory as one boundary-value problem.</p>
+  </header>
+
+  <div class="controls">
+    <span class="label">Controls present</span>
+    <button class="bit" id="b0">C1</button>
+    <button class="bit" id="b1">C2</button>
+    <button class="bit" id="b2">C3</button>
+    <button class="bit" id="b3">C4</button>
+    <button class="run" id="run">&#9654; Run</button>
+    <span class="auto" id="auto">auto demo</span>
+  </div>
+
+  <div class="stage"><canvas id="cv" width="1500" height="1180"></canvas></div>
+
+  <div class="facts">
+    <div class="fact">
+      <div class="k">What it computes</div>
+      <p>Each present control bends B one <b>54&deg; port-step</b> deeper; the first absent one
+      lets B fly straight out its current port. So the exit port = <b>first-zero index</b> —
+      a priority encoder — and <code>1111</code> lands the 4-input <b>AND</b> at the deepest port.</p>
+    </div>
+    <div class="fact wall">
+      <div class="k">The depth wall</div>
+      <p>Four is the ceiling for this design. A 5th control would fly ~60 units through the whole
+      accumulated field, get chaotically deflected, and <b>can't be aimed onto B</b> — its
+      calibration goes blind. Chaos bounds computational <b>depth</b>, not just precision.</p>
+    </div>
+    <div class="fact">
+      <div class="k">The chaos tax</div>
+      <p>A <code>1e-9</code> nudge to B's launch grows <span id="taxvals">~1.1 digits</span> per
+      gate — <b id="taxtotal">4.4 digits</b> across the chain (staircase, lower left). Precision
+      alone would allow <b id="taxgates">~13</b> gates; aiming caps it first at ~5.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const DATA = /*__DATA__*/;
+
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const W = cv.width, H = cv.height;
+const N = DATA.spec.n_gates;
+const PORTS = DATA.spec.ports;
+
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { signal: css('--signal'), bit: css('--bit'), grid: css('--grid'),
+            dim: css('--text-dim'), off: css('--port-off'), good: css('--good') };
+const MONO = 'ui-monospace, Menlo, monospace';
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// world window from B trajectories only (controls fly off-frame, which is fine)
+let WX0 = 1e9, WX1 = -1e9, WY0 = 1e9, WY1 = -1e9;
+for (const c of Object.values(DATA.cases)) {
+  for (const p of c.bodies[0]) {
+    WX0 = Math.min(WX0, p[0]); WX1 = Math.max(WX1, p[0]);
+    WY0 = Math.min(WY0, p[1]); WY1 = Math.max(WY1, p[1]);
+  }
+}
+const padX = (WX1 - WX0) * 0.10 + 2, padY = (WY1 - WY0) * 0.10 + 2;
+WX0 -= padX; WX1 += padX; WY0 -= padY; WY1 += padY;
+// preserve aspect ratio to the canvas
+const aspect = W / H;
+let ww = WX1 - WX0, wh = WY1 - WY0;
+if (ww / wh > aspect) { const nh = ww / aspect; const cy = (WY0 + WY1) / 2; WY0 = cy - nh / 2; WY1 = cy + nh / 2; }
+else { const nw = wh * aspect; const cx = (WX0 + WX1) / 2; WX0 = cx - nw / 2; WX1 = cx + nw / 2; }
+const sx = W / (WX1 - WX0), sy = H / (WY1 - WY0);
+const px = p => [(p[0] - WX0) * sx, H - (p[1] - WY0) * sy];
+
+const stars = [];
+let seed = 71;
+const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+for (let i = 0; i < 200; i++) stars.push([rnd() * W, rnd() * H, rnd() * 1.4 + 0.3, rnd() * 0.5 + 0.13]);
+
+// port readout anchors: B's final position in the canonical case for each port
+const portAnchor = {};
+for (let k = 0; k <= N; k++) {
+  const bits = Array.from({ length: N }, (_, i) => (i < k ? 1 : 0));
+  const c = DATA.cases[bits.join('')];
+  const bt = c.bodies[0];
+  portAnchor[k] = bt[bt.length - 1];
+}
+
+let bits = Array(N).fill(1);
+let frame = 0, playing = false, raf = null, t0 = 0, holdTimer = null, auto = true;
+const NF = DATA.cases['1111'.slice(0, N)] ? DATA.cases[Array(N).fill(1).join('')].bodies[0].length : 700;
+const DURATION_MS = 6500, HOLD_MS = 1700;
+
+function firstZero(b) { const i = b.indexOf(0); return i < 0 ? N : i; }
+function caseKey() { return bits.join(''); }
+
+// chaos staircase inset geometry (lower-right; lower-left holds port P0)
+const INSET = { x: W - 400, y: H - 250, w: 360, h: 200 };
+
+function drawInset(done) {
+  const ch = DATA.chaos, t = ch.t, sep = ch.sep;
+  const x0 = INSET.x, y0 = INSET.y, w = INSET.w, h = INSET.h;
+  ctx.fillStyle = 'rgba(8,11,22,0.82)';
+  ctx.strokeStyle = C.grid; ctx.lineWidth = 1;
+  ctx.fillRect(x0, y0, w, h); ctx.strokeRect(x0, y0, w, h);
+  ctx.font = '600 15px ' + MONO; ctx.fillStyle = C.dim; ctx.textAlign = 'left';
+  ctx.fillText('CHAOS TAX / GATE', x0 + 12, y0 + 24);
+  const tmax = t[t.length - 1];
+  const lo = Math.log10(ch.delta) - 0.3, hi = Math.log10(Math.max(...sep)) + 0.3;
+  const mapx = tt => x0 + 14 + (tt / tmax) * (w - 28);
+  const mapy = v => y0 + h - 16 - ((Math.log10(v) - lo) / (hi - lo)) * (h - 44);
+  // gate markers
+  for (let k = 0; k < N; k++) {
+    const gx = mapx(DATA.spec.gates[k].t);
+    ctx.strokeStyle = 'rgba(255,180,84,0.35)'; ctx.beginPath();
+    ctx.moveTo(gx, y0 + 30); ctx.lineTo(gx, y0 + h - 12); ctx.stroke();
+  }
+  ctx.strokeStyle = C.signal; ctx.lineWidth = 2; ctx.beginPath();
+  for (let i = 0; i < t.length; i++) {
+    const X = mapx(t[i]), Y = mapy(Math.max(sep[i], ch.delta));
+    i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y);
+  }
+  ctx.stroke();
+  ctx.font = '600 13px ' + MONO; ctx.fillStyle = C.signal; ctx.textAlign = 'right';
+  ctx.fillText(ch.total_digits.toFixed(1) + ' digits', x0 + w - 12, y0 + 24);
+}
+
+function drawBase() {
+  ctx.clearRect(0, 0, W, H);
+  for (const [x, y, r, a] of stars) {
+    ctx.globalAlpha = a; ctx.fillStyle = '#9fb0dd';
+    ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = C.grid; ctx.lineWidth = 1;
+  for (let gx = Math.ceil(WX0 / 8) * 8; gx <= WX1; gx += 8) {
+    const [X] = px([gx, 0]); ctx.beginPath(); ctx.moveTo(X, 0); ctx.lineTo(X, H); ctx.stroke();
+  }
+  for (let gy = Math.ceil(WY0 / 8) * 8; gy <= WY1; gy += 8) {
+    const [, Y] = px([0, gy]); ctx.beginPath(); ctx.moveTo(0, Y); ctx.lineTo(W, Y); ctx.stroke();
+  }
+}
+
+function drawGhostB() {
+  // faint dashed skeleton of every port lane so the fan reads even at rest
+  ctx.save();
+  ctx.globalAlpha = 0.13; ctx.setLineDash([5, 10]); ctx.lineWidth = 2;
+  for (let k = 0; k <= N; k++) {
+    const bt = DATA.cases[Array.from({ length: N }, (_, i) => (i < k ? 1 : 0)).join('')].bodies[0];
+    ctx.strokeStyle = C.signal; ctx.beginPath(); ctx.moveTo(...px(bt[0]));
+    for (let i = 2; i < bt.length; i += 3) ctx.lineTo(...px(bt[i]));
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawPorts(litPort) {
+  for (let k = 0; k <= N; k++) {
+    const [X, Y] = px(portAnchor[k]);
+    const lit = litPort === k;
+    ctx.setLineDash(lit ? [] : [4, 5]); ctx.lineWidth = lit ? 4 : 2;
+    ctx.strokeStyle = lit ? (k === N ? C.good : C.bit) : C.off;
+    if (lit) { ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 22; }
+    ctx.beginPath(); ctx.arc(X, Y, 30, 0, 7); ctx.stroke();
+    ctx.shadowBlur = 0; ctx.setLineDash([]);
+    ctx.font = '600 20px ' + MONO; ctx.textAlign = 'center';
+    ctx.fillStyle = lit ? ctx.strokeStyle : C.dim;
+    ctx.fillText('P' + k, X, Y - 40);
+  }
+}
+
+function drawTrail(pts, upto, color, glow) {
+  ctx.lineWidth = 3.5; ctx.lineCap = 'round';
+  const start = Math.max(1, upto - 300);
+  for (let i = start; i <= upto; i++) {
+    ctx.globalAlpha = 0.06 + 0.9 * ((i - start) / (upto - start + 1));
+    ctx.strokeStyle = color; ctx.beginPath();
+    ctx.moveTo(...px(pts[i - 1])); ctx.lineTo(...px(pts[i])); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  const [X, Y] = px(pts[Math.min(upto, pts.length - 1)]);
+  ctx.shadowColor = color; ctx.shadowBlur = glow; ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(X, Y, 8, 0, 7); ctx.fill(); ctx.shadowBlur = 0;
+}
+
+function drawBanner(done, port) {
+  ctx.textAlign = 'left';
+  ctx.font = '500 20px ' + MONO; ctx.fillStyle = C.dim;
+  ctx.fillText('INPUT', 40, 50); ctx.fillText('OUTPUT', 40, 132);
+  // bits as colored digits
+  ctx.font = '600 40px ' + MONO;
+  let x = 40;
+  for (let i = 0; i < N; i++) {
+    ctx.fillStyle = bits[i] ? C.bit : C.off;
+    ctx.fillText(bits[i], x, 96); x += 30;
+  }
+  ctx.font = '600 34px ' + MONO;
+  if (done) {
+    const and = port === N;
+    ctx.fillStyle = and ? C.good : C.bit;
+    ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 16;
+    ctx.fillText('PORT ' + port + (and ? '  ·  AND' : ''), 40, 172);
+    ctx.shadowBlur = 0;
+    ctx.font = '500 17px ' + MONO; ctx.fillStyle = C.dim;
+    ctx.fillText(port === N ? 'all controls present' : 'first gap at C' + (port + 1), 40, 200);
+  } else {
+    ctx.fillStyle = C.dim; ctx.fillText('threading…', 40, 172);
+  }
+}
+
+function render() {
+  const c = DATA.cases[caseKey()];
+  const done = frame >= c.bodies[0].length - 1;
+  drawBase();
+  drawGhostB();
+  drawPorts(done ? c.port : -1);
+  // present controls (amber), mapped via present[] -> body index 1+j
+  c.present.forEach((gateIdx, j) => drawTrail(c.bodies[1 + j], frame, C.bit, 16));
+  // signal B on top
+  drawTrail(c.bodies[0], frame, C.signal, 26);
+  drawBanner(done, c.port);
+  drawInset(done);
+}
+
+function tick(now) {
+  const c = DATA.cases[caseKey()];
+  const nf = c.bodies[0].length;
+  frame = Math.min(Math.floor(((now - t0) / DURATION_MS) * (nf - 1)), nf - 1);
+  render();
+  if (frame < nf - 1 && playing) raf = requestAnimationFrame(tick);
+  else if (playing) {
+    playing = false;
+    if (auto && !reduced) holdTimer = setTimeout(nextAuto, HOLD_MS);
+  }
+}
+
+// auto sequence: a tour that shows the priority-encoder behavior
+const AUTO_SEQ = ['1111', '1110', '1100', '1000', '0000', '1011', '0111'].map(s => s.slice(0, N));
+
+function nextAuto() {
+  const cur = caseKey();
+  const i = AUTO_SEQ.indexOf(cur);
+  const nxt = AUTO_SEQ[(i + 1) % AUTO_SEQ.length];
+  bits = nxt.split('').map(Number);
+  syncButtons(); play(true);
+}
+
+function play(fromAuto) {
+  cancelAnimationFrame(raf); clearTimeout(holdTimer);
+  if (!fromAuto) setAuto(false);
+  if (reduced) { const c = DATA.cases[caseKey()]; frame = c.bodies[0].length - 1; render(); return; }
+  frame = 0; playing = true; t0 = performance.now();
+  raf = requestAnimationFrame(tick);
+}
+
+function setAuto(on) {
+  auto = on;
+  const el = document.getElementById('auto');
+  el.classList.toggle('off', !on);
+  el.textContent = on ? 'auto demo' : 'manual';
+}
+
+function syncButtons() {
+  for (let i = 0; i < N; i++)
+    document.getElementById('b' + i).classList.toggle('on', !!bits[i]);
+}
+
+for (let i = 0; i < N; i++) {
+  document.getElementById('b' + i).onclick = () => {
+    bits[i] ^= 1; syncButtons(); play(false);
+  };
+}
+document.getElementById('run').onclick = () => play(false);
+
+// chaos fact numbers
+document.getElementById('taxtotal').textContent = DATA.chaos.total_digits.toFixed(1) + ' digits';
+document.getElementById('taxgates').textContent = '~' + DATA.chaos.max_gates;
+const dpg = DATA.chaos.per_gate.map(g => g.digits);
+document.getElementById('taxvals').textContent =
+  '~' + (dpg.reduce((a, b) => a + b, 0) / dpg.length).toFixed(1) + ' digits';
+
+syncButtons();
+play(true);
+</script>

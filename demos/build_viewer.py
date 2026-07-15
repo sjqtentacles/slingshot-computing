@@ -7,6 +7,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 PAGES = [
     ("demos/viewer.html", "out/switch.json", "out/viewer.html"),
     ("demos/arithmetic.html", "out/arithmetic.json", "out/arithmetic.html"),
+    ("demos/pipeline.html", "out/pipeline.json", "out/pipeline.html"),
 ]
 
 

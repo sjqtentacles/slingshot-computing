@@ -42,16 +42,42 @@ Two lessons the cascade forced (both now measured, see `demos/arithmetic_demo.py
 ×17 through gate 2 — ~1 digit of precision per gate, no restoring force. Float64
 affords ~12 gates at this scale (`out/chaos.png`).
 
+## Demo 03 (flagship): the 4-gate pipeline
+
+`slingshot/pipeline.py` compiles a **5-body machine**: one signal ball B threads
+**four gravitational gates in series**. Each present control bends B one 54°
+port-step deeper, so B's exit port = **index of the first absent control** — a
+**4-input priority encoder**, and all-present is a **4-input AND** at the deepest
+port. All 16 input cases verified (worst decision margin 15.4° vs a 27° boundary).
+
+The compiler is the interesting part: the five bodies form one coupled
+system (no gravitational shielding), so gates can't be calibrated independently —
+naive per-gate loops limit-cycle. It's solved as a **boundary-value problem**:
+a greedy seed, then Levenberg–Marquardt over per-gate (timing, impact-parameter)
+knobs with a **local per-gate bend residual** (a cumulative target lets adjacent
+gates split a port — the 27° = BEND/2 trap; the local target forbids it).
+
+**The depth wall (a result, not a bug):** four gates is the ceiling. A 5th
+control must fly ~60 units through the whole accumulated field, is chaotically
+deflected, and can't be aimed onto B — its calibration Jacobian goes flat.
+Gates 1–4 compile every time; gate 5 never lands. **Chaos bounds computational
+depth, not just precision** — and the two limits are separable: the measured
+chaos tax (~1.1 digits/gate, 4.4 over the chain) would allow ~13 gates on
+float64, so *aiming*, not precision, is what caps this design at ~5.
+
 ## Run it
 
 ```
 python3 -m demos.switch_demo       # demo 01: SWITCH gate
 python3 -m demos.arithmetic_demo   # demo 02: half adder + cascade + chaos tax
-python3 -m demos.build_viewer      # build out/viewer.html + out/arithmetic.html
+python3 -m demos.pipeline_demo     # demo 03: 4-gate priority encoder + AND (flagship)
+python3 -m demos.build_viewer      # build the animated out/*.html viewers
+python3 -m pytest                  # 56-test suite (physics invariants + all truth tables)
 ```
 
 Each demo prints its truth table / measurements and writes plots + trajectory
-JSON to `out/` for the animated HTML viewers.
+JSON to `out/` for the animated HTML viewers. The pipeline spec is cached in
+`out/pipeline_spec.json` (compilation takes a few minutes; delete to recompile).
 
 ## Physics / numerics
 
@@ -78,6 +104,9 @@ JSON to `out/` for the animated HTML viewers.
 - [x] AND gate (cascade: two flybys composed in series)
 - [x] Half adder (interaction gate + detector regions)
 - [x] Measure bits-of-precision consumed per gate
-- [ ] Slingshot mirror: route a signal around a heavy fixed mass
+- [x] Circuit compiler: N gates auto-placed and calibrated (boundary-value solve)
+- [x] 4-gate pipeline: priority encoder + 4-input AND, 16 cases
+- [x] Found the depth wall (~4 gates) set by chaotic control-flight
+- [ ] Heavy "mirror" controls (near-ballistic) to push depth past 4
 - [ ] Dual-rail encoding so absence-of-ball isn't the only "0"
 - [ ] Fan-out / signal copying (the hard one: no cloning in reversible ballistics)
