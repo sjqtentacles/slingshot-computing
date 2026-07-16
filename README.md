@@ -143,10 +143,10 @@ docs/          the GIFs above
 ## The arc: logic + memory
 
 This repo is the *logic* half of a two-project arc. The *memory* half is
-[orbital-memory](https://github.com/sjqtentacles/orbital-memory): a nonvolatile bit
-stored in which Lagrange island a body librates (write by orbit insertion, cool by
-station-keeping burns, rewrite by a real flyby, hold topologically) — and validated
-against Jupiter's actual ~148-year Trojan libration. The two meet in that repo's
+[orbital-memory](https://github.com/sjqtentacles/orbital-memory): a long-lived (but
+metastable) bit stored in which Lagrange island a body librates (write by orbit
+insertion, cool by station-keeping burns, rewrite by a real flyby, hold topologically)
+— and validated against Jupiter's actual ~148-year Trojan libration. The two meet in that repo's
 capstone: **an aimed flyby — this project's mechanism — conditionally erases a
 stored orbital bit.** Logic acting on memory, all of it pure gravity.
 
@@ -156,11 +156,21 @@ stored orbital bit.** Logic acting on memory, all of it pure gravity.
   consumes ~constant digits of precision per gate, and gravity has no attractor
   states, so there is no error correction. That decay is a *feature* of the project
   — measured, not hidden.
-- Nearest prior art: Fredkin & Toffoli's billiard-ball computer (1982), Moore's
-  Turing-machine embeddings in smooth dynamics (1990), Cardona–Miranda–Peralta-Salas–
-  Presas on Turing-complete Euler flows (2021), Tao's universality-of-dynamics
-  program. Gravitational-slingshot gates as a *built* artifact appear to be unclaimed
-  territory.
+- Nearest prior art — and it is close: **Svozil 2007** (arXiv:physics/0703031)
+  already drew a Fredkin gate realized by *attractive 1/r (gravitational)*
+  potentials, the direct ancestor of these flyby gates; **Fredkin & Toffoli's**
+  billiard-ball computer (1982) is the parent model; **Warren Smith (2006)** and
+  **Moore (1990)** prove Newtonian/ballistic dynamics can embed a Turing machine,
+  **Yao (JACM 2003)** frames the N-body problem as a Church–Turing testbed, all
+  resting on **Xia's** non-collision singularities (1988/1992). Cardona–Miranda–
+  Peralta-Salas–Presas (Turing-complete Euler flows, 2021) and Tao's universality
+  program are the fluid-dynamics cousins. So gravitational logic is *not* new;
+  what appears unclaimed is the *built artifact* — slingshot gates auto-placed and
+  calibrated into a working 4-gate pipeline, with the precision decay measured.
+- Idealization caveat: the universality results live in the Newtonian point-mass
+  idealization (infinite precision, unbounded speed, arbitrarily close approaches);
+  relativistic constraints restore ordinary Turing-simulability (Smith 2006), so
+  "gravity hypercomputes" is an artifact of the idealization, not a physical claim.
 
 ## Roadmap
 
