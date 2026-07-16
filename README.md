@@ -144,8 +144,9 @@ docs/          the GIFs above
 
 This repo is the *logic* half of a two-project arc. The *memory* half is
 [orbital-memory](https://github.com/sjqtentacles/orbital-memory): a nonvolatile bit
-stored in which Lagrange island a moonlet librates (write by adiabatic mass growth,
-cool by station-keeping burns, hold topologically). The two meet in that repo's
+stored in which Lagrange island a body librates (write by orbit insertion, cool by
+station-keeping burns, rewrite by a real flyby, hold topologically) — and validated
+against Jupiter's actual ~148-year Trojan libration. The two meet in that repo's
 capstone: **an aimed flyby — this project's mechanism — conditionally erases a
 stored orbital bit.** Logic acting on memory, all of it pure gravity.
 
